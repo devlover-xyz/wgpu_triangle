@@ -18,8 +18,12 @@ pub async fn run(
     num_vertices: u32,
 ) {
     let size = window.inner_size();
-    let instance = wgpu::Instance::new(wgpu::Backends::METAL);
-    let surface = unsafe { instance.create_surface(&window) };
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends: wgpu::Backends::METAL,
+        dx12_shader_compiler: Default::default(),
+    });
+
+    let surface = unsafe { instance.create_surface(&window) }.unwrap();
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::default(),
@@ -30,18 +34,21 @@ pub async fn run(
         .expect("Failed to find an appropriate adapter");
 
     let (device, queue) = adapter
-        .request_device(&wgpu::DeviceDescriptor {
-            label: None,
-            features: wgpu::Features::empty(),
-            limits: wgpu::limits::default(),
-        })
+        .request_device(
+            &wgpu::DeviceDescriptor {
+                label: None,
+                features: wgpu::Features::empty(),
+                limits: wgpu::Limits::default(),
+            },
+            None,
+        )
         .await
         .expect("Failed to create device");
 
     let surface_caps = surface.get_capabilities(&adapter);
     let format = surface_caps.formats[0];
 
-    let mut config = wgpu::SurfaceConfiguration {
+    let config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format,
         width: size.width,
@@ -100,21 +107,25 @@ pub async fn run(
 
         match event {
             Event::WindowEvent {
-                event: WindowEvent::Resized(size),
+                event: WindowEvent::Resized(_size),
                 ..
             } => {}
 
             Event::RedrawRequested(_) => {
                 let frame = surface.get_current_texture().unwrap();
+
                 let view = frame
                     .texture
-                    .create_view(&wgpu::TextureViewDescriptor { label: None });
+                    .create_view(&wgpu::TextureViewDescriptor::default());
+
+                let mut encoder =
+                    device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
                 {
                     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        lebel: None,
+                        label: None,
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            label: &view,
+                            view: &view,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -128,7 +139,6 @@ pub async fn run(
                         })],
                         depth_stencil_attachment: None,
                     });
-
                     rpass.set_pipeline(&render_pipeline);
                     rpass.draw(0..num_vertices, 0..1);
                 }

@@ -1,12 +1,13 @@
 mod common;
 use std::borrow::Cow;
-
 use winit::
     event_loop::EventLoop
 ;
 
 fn main() {
-    let mut primitive_type = "point-list";
+    // let mut primitive_type = "point-list";
+    let mut primitive_type = "line-list";
+    // let mut primitive_type = "line-strip";
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() > 1 {
@@ -25,7 +26,8 @@ fn main() {
     }
 
     let inputs = common::Inputs {
-        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+        // source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("first_triangle.wgsl"))),
         topology: topology,
         strip_index_format: index_format,
     };
